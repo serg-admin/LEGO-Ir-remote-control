@@ -84,8 +84,20 @@ ISR(TIMER1_CAPT_vect) {
  * @param value принятое значений
  * @param rCount количество повторов (не реализовано)
  */
-void received (int16_t value, int8_t rCount) {
-  uart_writelnHEXEx((unsigned char *)&value, 2); 
+void received (legoIrFSM_uCmd value, int8_t rCount) {
+  static uint16_t prevRaw = 0;
+  if (prevRaw == value.raw) return;
+  prevRaw = value.raw;
+//  uart_writelnHEXEx((unsigned char *)&value, 2); 
+  uart_write("control: ");
+  uart_writelnHEX(value.cmd.control);
+  uart_write("chanel: ");
+  uart_writelnHEX(value.cmd.chanel);
+  uart_write("sequence: ");
+  uart_writelnHEX(value.cmd.sequence);
+  uart_write("direction ");
+  uart_writelnHEX(value.cmd.direction);
+  uart_writeln("");
 }
 
 /**
@@ -111,7 +123,7 @@ int main(void) {
   uart_async_init();
   // Инициализация парсера для LEGO пульта.
   legoIrFSM_reset();
-  legoIrFSM_callback(received);
+  legoIrFSM_setCallBack(received);
 
   sei(); // Включить прерывания
 

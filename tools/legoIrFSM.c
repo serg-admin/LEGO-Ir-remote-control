@@ -6,20 +6,20 @@
 #include "legoIrFSM.h"
 #define NULL 0
 
-typedef uint8_t (*state_callback)(enum states state, uint16_t len, uint8_t level);
+typedef uint8_t (*state_callback)(enum legoIrFSM_states state, uint16_t len, uint8_t level);
 
-legoIrFSM_received ir_callBack = NULL;
-enum states legoIrFSM_state = FSM_ST_P;
+legoIrFSM_received legoIrFSM_callBack = NULL;
+enum legoIrFSM_states legoIrFSM_state = FSM_ST_P;
 uint8_t legoIrFSM_counter = 0xFF;
 
 struct transition
 {
-    enum states nextState;
+    enum legoIrFSM_states nextState;
     state_callback fun;
 };
 
 // Проверка корректности временных диапазонов
-uint8_t check_interval(enum states state, uint16_t len, uint8_t level) {
+uint8_t check_interval(enum legoIrFSM_states state, uint16_t len, uint8_t level) {
   switch (state) {
     case FSM_ST_P :
       return len > 10000 ? 0 : 1;
@@ -44,23 +44,23 @@ uint8_t check_interval(enum states state, uint16_t len, uint8_t level) {
  * @param len   - длительность импульса в микросекундах
  * @param level - уровень импульса (игнорируется)
  */
-uint8_t save_value(enum states state, uint16_t len, uint8_t level) {
+uint8_t save_value(enum legoIrFSM_states state, uint16_t len, uint8_t level) {
   legoIrFSM_counter++;
   if (legoIrFSM_counter > 15) return 1; // Прием данных был закончен - нужно сбросить состояние парсера
 
   // Запись значения принятого бита
-  legoIrFSM_value = (legoIrFSM_value << 1);
+  legoIrFSM_value.raw = (legoIrFSM_value.raw << 1);
   if ((len > 500) && (len < 600)) {
-    legoIrFSM_value++;
+    legoIrFSM_value.raw++;
   };
 
   // Зацикливаем состояния для обработки следующего бита
   legoIrFSM_state = FSM_ST_SLOW;
 
   // Если приняты биты 0-15 и определена процедура обратного вызова
-  // вызват ьпользовательскую функцию.
-  if ((legoIrFSM_counter == 15) && (legoIrFSM_value != NULL)) {
-    ir_callBack(legoIrFSM_value, 1);
+  // вызвать пользовательскую функцию.
+  if ((legoIrFSM_counter == 15) && (legoIrFSM_callBack != NULL)) {
+    legoIrFSM_callBack(legoIrFSM_value, 1);
   };
   return 0;
 }
@@ -105,6 +105,6 @@ void legoIrFSM_mpuls(uint8_t len, uint8_t level) {
   legoIrFSM_upuls(len * 1000, level);
 }
 
-void legoIrFSM_callback(legoIrFSM_received fn) {
-  ir_callBack = fn;
+void legoIrFSM_setCallBack(legoIrFSM_received fn) {
+  legoIrFSM_callBack = fn;
 }

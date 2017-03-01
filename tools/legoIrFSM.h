@@ -30,8 +30,27 @@
 #ifndef __LEGO_IR_FSM_H_
 #define __LEGO_IR_FSM_H_
 
-typedef void (*legoIrFSM_received)(int16_t value, int8_t rCount);
-enum states {
+/**
+ * @description Структура команды поступающей с пульта
+ */
+typedef struct legoIrFSM_cmd {
+  uint8_t oddControl : 1; // Бит контроля четности
+  uint8_t type : 2;       // Тип контрола (предположительно)
+  uint8_t sequence2 : 1;  // Номер нажатия (для двойных нажатий)
+  uint8_t direction : 2;  // Направление (для вращающихся контролов)
+  uint8_t type2 : 2;      // Тип контрола (инверсно дублирует type)
+  uint8_t control : 4;    // Номер котрола (возможно только первые два бита)
+  uint8_t chanel  : 3;    // Номер канала 0-3
+  uint8_t sequence: 1;    // Дублирует sequence2
+} legoIrFSM_cmd;
+
+typedef union legoIrFSN_uCmd {
+  uint16_t raw;
+  struct legoIrFSM_cmd cmd;
+} legoIrFSM_uCmd;
+
+typedef void (*legoIrFSM_received)(legoIrFSM_uCmd value, int8_t rCount);
+enum legoIrFSM_states {
   // Пауза
   FSM_ST_P,
   // Старт передачи
@@ -44,7 +63,7 @@ enum states {
   FSM_ST_B
 };
 
-uint16_t legoIrFSM_value;
+legoIrFSM_uCmd legoIrFSM_value;
 
 /**
  * Сброс состояния парсера
@@ -75,7 +94,7 @@ void legoIrFSM_mpuls(uint8_t len, uint8_t level);
  * 
  * @param fn - функция котороя будет вызываться при получении полного слова данных
  */
-void legoIrFSM_callback(legoIrFSM_received fn);
+void legoIrFSM_setCallBack(legoIrFSM_received fn);
 #endif
 
 
